@@ -49,6 +49,7 @@ model JuniorYouth {
 
 model Notebook {
   id Int @default(autoincrement()) @id
+  name String?
   juniorYouth JuniorYouth[]
   sections Section[]
   author User? @relation(fields: [authorId], references: [id])

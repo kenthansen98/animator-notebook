@@ -1,0 +1,14 @@
+.notebooks {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.notebook {
+    border: 1px solid gray;
+    border-radius: 5px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

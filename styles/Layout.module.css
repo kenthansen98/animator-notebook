@@ -1,0 +1,17 @@
+.container {
+  padding: 0 5rem;
+}
+
+.nav {
+  padding: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-content: center;
+}
+
+.login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
