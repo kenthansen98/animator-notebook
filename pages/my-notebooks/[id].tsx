@@ -5,6 +5,7 @@ import prisma from "../../lib/prisma";
 import styles from "../../styles/SingleNotebook.module.css";
 import React, { useState } from "react";
 import { getSession } from "next-auth/client";
+import BasicInfoForm from "../../components/BasicInfoForm";
 import Router from "next/router";
 
 interface Props {
@@ -25,41 +26,14 @@ interface Props {
     | null;
 }
 
-interface NewNote {
-    name: string, 
-    helperText: string, 
-    content: string,
-    userCreated: boolean,
-}
-
-const initialNotes: NewNote[] = [
-    {
-        name: "Family Information",
-        helperText: "Information about parents, siblings",
-        content: "",
-        userCreated: false
-    },
-    {
-        name: "School Information",
-        helperText: "School name, grade level, etc.",
-        content: "",
-        userCreated: false
-    },
-    {
-        name: "Language Proficiency",
-        helperText: "Reading level, fluency, home languages, etc.",
-        content: "",
-        userCreated: false
-    },
-]
-
 const SingleNotebook: React.FC<Props> = ({ notebook }) => {
     const [viewNotes, setViewNotes] = useState(-1);
     const [addBasicInfo, setAddBasicInfo] = useState(false);
-    const [jyName, setJyName] = useState("");
-    const [jyAge, setJyAge] = useState("");
-    const [jyNotes, setJyNotes] = useState<NewNote[]>(initialNotes);
-    const [jyList, setJyList] = useState<{ name: string, age: string, notes: NewNote[] }[]>([]);
+    const [addSection, setAddSection] = useState(false);
+    const [section, setSection] = useState<{ name: string, notes: { name: string, content: string }[] }>({
+        name: "",
+        notes: []
+    });
 
     if (!notebook) {
         return (
@@ -69,24 +43,18 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
         )
     }
 
-    const onAddJy = () => {
-        setJyList([...jyList, { name: jyName, age: jyAge, notes: jyNotes }]);
-        setJyName("");
-        setJyAge("");
-        setJyNotes(initialNotes);
-    };
-
     const onSubmit = async (event: React.SyntheticEvent) => {
         event.preventDefault();
         try {
-            const body = { jyList };
-            await fetch(`http://localhost:3000/api/notebook/${notebook.id}`, {
+            const body = { section };
+            await fetch(`http://localhost:3000/api/notebook/${notebook.id}/section`, {
                 method: "PUT", 
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)
             });
-            // await Router.push(`my-notebooks/${notebook.id}`);
-            setAddBasicInfo(false);
+            setSection({ name: "", notes: [] });
+            setAddSection(false);
+            Router.replace(Router.asPath);
         } catch (e) {
             console.error(e);
         }
@@ -101,45 +69,7 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                     <div>
                         {!addBasicInfo && <div className={styles.button} onClick={() => setAddBasicInfo(true)}>+ Add Basic Info</div>}
                         {addBasicInfo && (
-                            <form onSubmit={onSubmit}>
-                                <h3>Basic Info</h3>
-                                {jyList.map((jy, i) => (
-                                    <div key={i}>
-                                        {jy.name}, {jy.age}
-                                        <button onClick={() => setJyList(jyList.filter((_jy, idx) => idx !== i))}>x</button>
-                                    </div>
-                                ))}
-                                <div>
-                                    <h4>Junior Youth Names and Ages</h4>
-                                    <input type="text" placeholder="Name" value={jyName} onChange={(e) => setJyName(e.target.value)} />
-                                    <input type="number" min="10" max="17" placeholder="Age" value={jyAge} onChange={(e) => setJyAge(e.target.value)} />
-                                </div>
-                                {jyNotes.map((note, i) => (
-                                    <div key={i}>
-                                        <div>
-                                            {!note.userCreated 
-                                                ? <h4>{note.name}</h4> 
-                                                : <div>
-                                                    <label>Note Name</label>
-                                                    <input type="text" value={note.name} onChange={(e) => setJyNotes(
-                                                        jyNotes.map((note, idx) => idx !== i ? note : { ...note, name: e.target.value })
-                                                    )} />
-                                                </div>
-                                            }
-                                            <i>{note.helperText}</i>
-                                        </div>
-                                        <textarea
-                                            value={note.content}
-                                            onChange={(e) => setJyNotes(
-                                                jyNotes.map((note, idx) => idx !== i ? note : { ...note, content: e.target.value })
-                                            )}
-                                        />
-                                    </div>
-                                ))}
-                                <button onClick={() => setJyNotes(jyNotes.concat({ name: "", helperText: "", content: "", userCreated: true }))}>Add Note</button>
-                                <input disabled={!jyName || !jyAge} type="button" value="Add" onClick={onAddJy} />
-                                <input disabled={jyList.length === 0} type="submit" value="Confirm" />
-                            </form>
+                            <BasicInfoForm toggleAdd={() => setAddBasicInfo(false)} notebookId={notebook.id} />
                         )}
                     </div>
                 )}
@@ -169,6 +99,26 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                         ))}
                     </div>
                 ))}
+                {!addSection && <div className={styles.button} onClick={() => setAddSection(true)}>+ Add Section</div>}
+                {addSection && (
+                    <form onSubmit={onSubmit}>
+                        <input type="text" placeholder="Section Name" value={section.name} onChange={(e) => setSection({ ...section, name: e.target.value })} />
+                        {section.notes.map((note, i) => (
+                            <div key={i}>
+                                <div>
+                                    <input type="text" placeholder="Note Name" value={note.name} onChange={(e) => setSection(
+                                        { ...section, notes: section.notes.map((n, idx) => idx !== i ? n : { ...n, name: e.target.value }) }
+                                    )} />
+                                </div>
+                                <textarea placeholder="" value={note.content} onChange={(e) => setSection(
+                                    { ...section, notes: section.notes.map((n, idx) => idx !== i ? n : { ...n, content: e.target.value }) }
+                                )} />
+                            </div>
+                        ))}
+                        <button type="button" onClick={() => { setSection({ ...section, notes: section.notes.concat({ name: "", content: "" }) }); console.log(section) }}>Add Note</button>
+                        <input disabled={section.name.length === 0 || section.notes.length === 0} type="submit" value="Confirm" />
+                    </form>
+                )}
             </div>
         </Layout>
     );

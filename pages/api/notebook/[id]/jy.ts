@@ -1,13 +1,10 @@
-import prisma from "../../../lib/prisma";
+import prisma from "../../../../lib/prisma";
 import { NextApiRequest, NextApiResponse } from "next";
-import { JuniorYouth, Note } from ".prisma/client";
 
 const handle = async (req: NextApiRequest, res: NextApiResponse) => {
     const notebookId = req.query.id;
 
     if (req.method === 'PUT') {
-        console.log(req.body);
-
         await prisma.notebook.update({
             where: { id: Number(notebookId) },
             data: {
