@@ -1,12 +1,14 @@
 import { GetServerSideProps } from "next";
+import { getSession } from "next-auth/client";
+import React, { useState } from "react";
+
 import { Notebook, JuniorYouth, Note, Lesson, Section } from "@prisma/client";
 import Layout from "../../components/Layout";
 import prisma from "../../lib/prisma";
 import styles from "../../styles/SingleNotebook.module.css";
-import React, { useState } from "react";
-import { getSession } from "next-auth/client";
+import SectionForm from "../../components/SectionForm";
 import BasicInfoForm from "../../components/BasicInfoForm";
-import Router from "next/router";
+
 
 interface Props {
     notebook:
@@ -27,13 +29,9 @@ interface Props {
 }
 
 const SingleNotebook: React.FC<Props> = ({ notebook }) => {
-    const [viewNotes, setViewNotes] = useState(-1);
+    const [viewNotes, setViewNotes] = useState<number[]>([]);
     const [addBasicInfo, setAddBasicInfo] = useState(false);
     const [addSection, setAddSection] = useState(false);
-    const [section, setSection] = useState<{ name: string, notes: { name: string, content: string }[] }>({
-        name: "",
-        notes: []
-    });
 
     if (!notebook) {
         return (
@@ -41,23 +39,6 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                 <div>Unauthorized</div>
             </Layout>
         )
-    }
-
-    const onSubmit = async (event: React.SyntheticEvent) => {
-        event.preventDefault();
-        try {
-            const body = { section };
-            await fetch(`http://localhost:3000/api/notebook/${notebook.id}/section`, {
-                method: "PUT", 
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body)
-            });
-            setSection({ name: "", notes: [] });
-            setAddSection(false);
-            Router.replace(Router.asPath);
-        } catch (e) {
-            console.error(e);
-        }
     }
 
     return (
@@ -75,10 +56,10 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                 )}
                 {notebook.juniorYouth.map((jy, i) => (
                     <div key={i}>
-                        <div onClick={() => setViewNotes(viewNotes === -1 ? jy.id : -1)} className={styles.toggle}>
+                        <div onClick={() => setViewNotes(viewNotes.includes(jy.id) ? viewNotes.filter(id => id !== jy.id) : viewNotes.concat(jy.id))} className={styles.toggle}>
                             {jy.name}, {jy.age}
                         </div>
-                        {viewNotes === jy.id &&
+                        {viewNotes.includes(jy.id) &&
                             jy.notes.map((note, i) => (
                                 <div key={i}>
                                     <h4>- {note.name}</h4>
@@ -101,23 +82,7 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                 ))}
                 {!addSection && <div className={styles.button} onClick={() => setAddSection(true)}>+ Add Section</div>}
                 {addSection && (
-                    <form onSubmit={onSubmit}>
-                        <input type="text" placeholder="Section Name" value={section.name} onChange={(e) => setSection({ ...section, name: e.target.value })} />
-                        {section.notes.map((note, i) => (
-                            <div key={i}>
-                                <div>
-                                    <input type="text" placeholder="Note Name" value={note.name} onChange={(e) => setSection(
-                                        { ...section, notes: section.notes.map((n, idx) => idx !== i ? n : { ...n, name: e.target.value }) }
-                                    )} />
-                                </div>
-                                <textarea placeholder="" value={note.content} onChange={(e) => setSection(
-                                    { ...section, notes: section.notes.map((n, idx) => idx !== i ? n : { ...n, content: e.target.value }) }
-                                )} />
-                            </div>
-                        ))}
-                        <button type="button" onClick={() => { setSection({ ...section, notes: section.notes.concat({ name: "", content: "" }) }); console.log(section) }}>Add Note</button>
-                        <input disabled={section.name.length === 0 || section.notes.length === 0} type="submit" value="Confirm" />
-                    </form>
+                    <SectionForm toggleAdd={() => setAddSection(false)} notebookId={notebook.id}/>
                 )}
             </div>
         </Layout>
