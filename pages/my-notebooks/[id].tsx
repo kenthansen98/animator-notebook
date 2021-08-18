@@ -8,6 +8,7 @@ import prisma from "../../lib/prisma";
 import styles from "../../styles/SingleNotebook.module.css";
 import SectionForm from "../../components/SectionForm";
 import BasicInfoForm from "../../components/BasicInfoForm";
+import Router from "next/router";
 
 
 interface Props {
@@ -41,17 +42,25 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
         )
     }
 
+    const deleteNotebook = async () => {
+        if (window.confirm("Are you sure you want to delete this notebook?")) {
+            await fetch(`http://localhost:3000/api/notebook/${notebook.id}`, {
+                method: "DELETE",
+            });
+            Router.push("/my-notebooks");
+        }
+    };
+
     return (
         <Layout>
             <div className={styles.content}>
-                <h1>{notebook?.name}</h1>
-                {notebook.juniorYouth.length > 0 && <h2>Basic Info</h2>}
+                <h1>{notebook?.name}
+                    <button onClick={deleteNotebook}>x</button>
+                </h1>
+                {notebook.juniorYouth.length > 0 && <h2>Basic Info<button onClick={() => setAddBasicInfo(true)}>edit</button></h2>}
                 {notebook.juniorYouth.length === 0 && (
                     <div>
                         {!addBasicInfo && <div className={styles.button} onClick={() => setAddBasicInfo(true)}>+ Add Basic Info</div>}
-                        {addBasicInfo && (
-                            <BasicInfoForm toggleAdd={() => setAddBasicInfo(false)} notebookId={notebook.id} />
-                        )}
                     </div>
                 )}
                 {notebook.juniorYouth.map((jy, i) => (
@@ -61,14 +70,17 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                         </div>
                         {viewNotes.includes(jy.id) &&
                             jy.notes.map((note, i) => (
-                                <div key={i}>
+                                (note.content !== "" && <div key={i}>
                                     <h4>- {note.name}</h4>
                                     <p>{note.content}</p>
-                                </div>
+                                </div>)
                             ))
                         }
                     </div>
                 ))}
+                {addBasicInfo && (
+                    <BasicInfoForm toggleAdd={() => setAddBasicInfo(false)} notebookId={notebook.id} />
+                )}
                 {notebook.sections.map((section, i) => (
                     <div key={i}>
                         <h2>{section.name}</h2>
@@ -82,7 +94,7 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                 ))}
                 {!addSection && <div className={styles.button} onClick={() => setAddSection(true)}>+ Add Section</div>}
                 {addSection && (
-                    <SectionForm toggleAdd={() => setAddSection(false)} notebookId={notebook.id}/>
+                    <SectionForm toggleAdd={() => setAddSection(false)} notebookId={notebook.id} />
                 )}
             </div>
         </Layout>

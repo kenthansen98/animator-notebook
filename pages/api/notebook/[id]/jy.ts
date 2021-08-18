@@ -24,7 +24,8 @@ const handle = async (req: NextApiRequest, res: NextApiResponse) => {
         const jyInNotebook = await prisma.juniorYouth.findMany({
             where: { notebookId: Number(notebookId) }
         });
-        jyInNotebook.forEach(async (jy) => {
+        const updateNames = (req.body.jyList as any[]).map(jy => jy.name);
+        jyInNotebook.filter(entry => updateNames.includes(entry.name)).forEach(async (jy) => {
             await prisma.juniorYouth.update({
                 where: { id: jy.id },
                 data: {

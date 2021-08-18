@@ -67,7 +67,6 @@ const BasicInfoForm: React.FC<Props> = ({ toggleAdd, notebookId }) => {
 
     return (
         <form onSubmit={onSubmit}>
-            <h3>Basic Info</h3>
             {jyList.map((jy, i) => (
                 <div key={i}>
                     {jy.name}, {jy.age}

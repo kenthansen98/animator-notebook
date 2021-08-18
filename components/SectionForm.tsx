@@ -45,7 +45,7 @@ const SectionForm: React.FC<Props> = ({ toggleAdd, notebookId }) => {
                 </div>
             ))}
             <button type="button" onClick={() => { setSection({ ...section, notes: section.notes.concat({ name: "", content: "" }) }); console.log(section) }}>Add Note</button>
-            <input disabled={section.name.length === 0 || section.notes.length === 0} type="submit" value="Confirm" />
+            <input disabled={section.name.length === 0 || section.notes.length === 0 || (section.notes.length > 0 && (section.notes.map(n => n.name).includes("") || section.notes.map(n => n.content).includes("")))} type="submit" value="Confirm" />
         </form>
     );
 };
