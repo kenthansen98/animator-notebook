@@ -10,23 +10,22 @@ import SectionForm from "../../components/SectionForm";
 import BasicInfoForm from "../../components/BasicInfoForm";
 import Router from "next/router";
 
-
 interface Props {
     notebook:
-    | (Notebook & {
-        author: {
-            name: string | null;
-            email: string | null;
-        } | null;
-        juniorYouth: (JuniorYouth & {
-            notes: Note[];
-            lessonsCompleted: Lesson[];
-        })[];
-        sections: (Section & {
-            notes: Note[];
-        })[];
-    })
-    | null;
+        | (Notebook & {
+              author: {
+                  name: string | null;
+                  email: string | null;
+              } | null;
+              juniorYouth: (JuniorYouth & {
+                  notes: Note[];
+                  lessonsCompleted: Lesson[];
+              })[];
+              sections: (Section & {
+                  notes: Note[];
+              })[];
+          })
+        | null;
 }
 
 const SingleNotebook: React.FC<Props> = ({ notebook }) => {
@@ -39,7 +38,7 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
             <Layout>
                 <div>Unauthorized</div>
             </Layout>
-        )
+        );
     }
 
     const deleteNotebook = async () => {
@@ -51,39 +50,85 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
         }
     };
 
+    const deleteSection = async (sectionId: number) => {
+        if (window.confirm("Are you sure you want to delete this section?")) {
+            await fetch(
+                `http://localhost:3000/api/notebook/${notebook.id}/section/${sectionId}`,
+                {
+                    method: "DELETE",
+                }
+            );
+            Router.replace(Router.asPath);
+        }
+    };
+
     return (
         <Layout>
             <div className={styles.content}>
-                <h1>{notebook?.name}
+                <h1>
+                    {notebook?.name}
                     <button onClick={deleteNotebook}>x</button>
                 </h1>
-                {notebook.juniorYouth.length > 0 && <h2>Basic Info<button onClick={() => setAddBasicInfo(true)}>edit</button></h2>}
+                {notebook.juniorYouth.length > 0 && (
+                    <h2>
+                        Basic Info
+                        <button onClick={() => setAddBasicInfo(!addBasicInfo)}>
+                            edit
+                        </button>
+                    </h2>
+                )}
                 {notebook.juniorYouth.length === 0 && (
                     <div>
-                        {!addBasicInfo && <div className={styles.button} onClick={() => setAddBasicInfo(true)}>+ Add Basic Info</div>}
+                        {!addBasicInfo && (
+                            <div
+                                className={styles.button}
+                                onClick={() => setAddBasicInfo(true)}
+                            >
+                                + Add Basic Info
+                            </div>
+                        )}
                     </div>
                 )}
                 {notebook.juniorYouth.map((jy, i) => (
                     <div key={i}>
-                        <div onClick={() => setViewNotes(viewNotes.includes(jy.id) ? viewNotes.filter(id => id !== jy.id) : viewNotes.concat(jy.id))} className={styles.toggle}>
+                        <div
+                            onClick={() =>
+                                setViewNotes(
+                                    viewNotes.includes(jy.id)
+                                        ? viewNotes.filter((id) => id !== jy.id)
+                                        : viewNotes.concat(jy.id)
+                                )
+                            }
+                            className={styles.toggle}
+                        >
                             {jy.name}, {jy.age}
                         </div>
                         {viewNotes.includes(jy.id) &&
-                            jy.notes.map((note, i) => (
-                                (note.content !== "" && <div key={i}>
-                                    <h4>- {note.name}</h4>
-                                    <p>{note.content}</p>
-                                </div>)
-                            ))
-                        }
+                            jy.notes.map(
+                                (note, i) =>
+                                    note.content !== "" && (
+                                        <div key={i}>
+                                            <h4>- {note.name}</h4>
+                                            <p>{note.content}</p>
+                                        </div>
+                                    )
+                            )}
                     </div>
                 ))}
                 {addBasicInfo && (
-                    <BasicInfoForm toggleAdd={() => setAddBasicInfo(false)} notebookId={notebook.id} />
+                    <BasicInfoForm
+                        toggleAdd={() => setAddBasicInfo(false)}
+                        notebookId={notebook.id}
+                    />
                 )}
                 {notebook.sections.map((section, i) => (
                     <div key={i}>
-                        <h2>{section.name}</h2>
+                        <h2>
+                            {section.name}
+                            <button onClick={() => deleteSection(section.id)}>
+                                x
+                            </button>
+                        </h2>
                         {section.notes.map((note, i) => (
                             <div key={i}>
                                 <h4>- {note.name}</h4>
@@ -92,22 +137,43 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                         ))}
                     </div>
                 ))}
-                {!addSection && <div className={styles.button} onClick={() => setAddSection(true)}>+ Add Section</div>}
+                {!addSection && (
+                    <div
+                        className={styles.button}
+                        onClick={() => setAddSection(true)}
+                    >
+                        + Add Section
+                    </div>
+                )}
                 {addSection && (
-                    <SectionForm toggleAdd={() => setAddSection(false)} notebookId={notebook.id} />
+                    <SectionForm
+                        toggleAdd={() => setAddSection(false)}
+                        notebookId={notebook.id}
+                    />
+                )}
+                {addSection && (
+                    <div>
+                        <button onClick={() => setAddSection(false)}>
+                            Cancel
+                        </button>
+                    </div>
                 )}
             </div>
         </Layout>
     );
 };
 
-export const getServerSideProps: GetServerSideProps = async ({ params, req, res }) => {
+export const getServerSideProps: GetServerSideProps = async ({
+    params,
+    req,
+    res,
+}) => {
     const session = await getSession({ req });
     if (!session) {
         res.statusCode = 403;
         return {
-            props: { notebook: undefined }
-        }
+            props: { notebook: undefined },
+        };
     }
     const notebook = await prisma.notebook.findUnique({
         where: { id: Number(params?.id) || -1 },
