@@ -3,12 +3,14 @@ import { getSession } from "next-auth/client";
 import React, { useState } from "react";
 
 import { Notebook, JuniorYouth, Note, Lesson, Section } from "@prisma/client";
-import Layout from "../../components/Layout";
-import prisma from "../../lib/prisma";
-import styles from "../../styles/SingleNotebook.module.css";
-import SectionForm from "../../components/SectionForm";
-import BasicInfoForm from "../../components/BasicInfoForm";
+import Layout from "../../../components/Layout";
+import prisma from "../../../lib/prisma";
+import styles from "../../../styles/SingleNotebook.module.css";
+import SectionForm from "../../../components/SectionForm";
+import BasicInfoForm from "../../../components/BasicInfoForm";
 import Router from "next/router";
+import router from "next/router";
+import Link from "next/link";
 
 interface Props {
     notebook:
@@ -70,12 +72,16 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                     <button onClick={deleteNotebook}>x</button>
                 </h1>
                 {notebook.juniorYouth.length > 0 && (
-                    <h2>
-                        Basic Info
-                        <button onClick={() => setAddBasicInfo(!addBasicInfo)}>
-                            edit
-                        </button>
-                    </h2>
+                    <div>
+                        <h2>
+                            Basic Info
+                            <button
+                                onClick={() => setAddBasicInfo(!addBasicInfo)}
+                            >
+                                edit
+                            </button>
+                        </h2>
+                    </div>
                 )}
                 {notebook.juniorYouth.length === 0 && (
                     <div>
@@ -115,6 +121,14 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                             )}
                     </div>
                 ))}
+                {notebook.juniorYouth.length > 0 && (
+                    <Link href={`/my-notebooks/${notebook.id}/lessons`}>
+                        <a>
+                            <div className={styles.button}>View Lessons</div>
+                        </a>
+                    </Link>
+                )}
+
                 {addBasicInfo && (
                     <BasicInfoForm
                         toggleAdd={() => setAddBasicInfo(false)}
