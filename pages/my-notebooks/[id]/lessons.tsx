@@ -4,17 +4,29 @@ import { getSession } from "next-auth/client";
 import styles from "../../../styles/SingleNotebook.module.css";
 import Layout from "../../../components/Layout";
 import prisma from "../../../lib/prisma";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
+import dayjs from "dayjs";
 
 interface Props {
     notebook:
         | (Notebook & {
               juniorYouth: (JuniorYouth & {
-                  notes: Note[];
                   lessonsCompleted: Lesson[];
               })[];
           })
         | null;
+}
+
+interface NewLesson {
+    text: string;
+    lesson: number;
+    date: Date;
+}
+
+interface NewJY {
+    id: number;
+    name: string;
+    lessonsCompleted: NewLesson[];
 }
 
 const texts = [
@@ -70,6 +82,19 @@ const texts = [
 
 const Lessons: React.FC<Props> = ({ notebook }) => {
     const [currentText, setCurrentText] = useState(texts[0]);
+    const [jyLessons, setJyLessons] = useState<NewJY[]>(
+        notebook
+            ? notebook?.juniorYouth.map((jy) => ({
+                  id: jy.id,
+                  name: jy.name!,
+                  lessonsCompleted: jy.lessonsCompleted.map((lesson) => ({
+                      text: lesson.text!,
+                      lesson: lesson.lesson!,
+                      date: lesson.date!,
+                  })),
+              }))!
+            : []
+    );
 
     if (!notebook) {
         return (
@@ -80,16 +105,78 @@ const Lessons: React.FC<Props> = ({ notebook }) => {
     }
 
     const isChecked = (
-        lessonsCompleted: Lesson[],
+        lessonsCompleted: NewLesson[],
         currentLesson: number
-    ): boolean => {
+    ): NewLesson | undefined => {
         return lessonsCompleted.find(
             (lesson) =>
                 lesson.text === currentText.name &&
                 lesson.lesson === currentLesson
-        )
-            ? true
-            : false;
+        );
+    };
+
+    const onChange = async (
+        checked: boolean,
+        currentJy: NewJY,
+        currentLesson: number
+    ) => {
+        // const lesson = lessonsCompleted.find(
+        //     (lesson) =>
+        //         lesson.text === currentText.name &&
+        //         lesson.lesson === currentLesson
+        // );
+        let changedJy: NewJY | undefined;
+        if (checked) {
+            const newLesson: NewLesson = {
+                text: currentText.name,
+                lesson: currentLesson,
+                date: dayjs().toDate(),
+            };
+            const newJyLessons = jyLessons?.map((jy) => {
+                const newJy =
+                    jy.id !== currentJy.id
+                        ? jy
+                        : {
+                              ...jy,
+                              lessonsCompleted:
+                                  jy.lessonsCompleted.concat(newLesson),
+                          };
+                if (newJy.id === currentJy.id) changedJy = newJy;
+                return newJy;
+            });
+            setJyLessons(newJyLessons);
+        } else {
+            const newJyLessons = jyLessons.map((jy) => {
+                const newJy =
+                    jy.id !== currentJy.id
+                        ? jy
+                        : {
+                              ...jy,
+                              lessonsCompleted: jy.lessonsCompleted.filter(
+                                  (lesson) => currentLesson !== lesson.lesson
+                              ),
+                          };
+                if (newJy.id === currentJy.id) changedJy = newJy;
+                return newJy;
+            });
+            setJyLessons(newJyLessons);
+        }
+        if (changedJy) {
+            try {
+                const body = { changedJy };
+                const response = await fetch(
+                    `http://localhost:3000/api/junioryouth/${changedJy.id}`,
+                    {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                    }
+                );
+                console.log(response);
+            } catch (e) {
+                console.error(e);
+            }
+        }
     };
 
     return (
@@ -123,22 +210,45 @@ const Lessons: React.FC<Props> = ({ notebook }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {notebook.juniorYouth.map((jy, i) => (
+                        {jyLessons?.map((jy, i) => (
                             <tr key={i}>
                                 <td>{jy.name}</td>
                                 {[...Array(currentText.lessons)].map(
-                                    (_col, i) => (
-                                        <td key={i}>
-                                            <input
-                                                type="checkbox"
-                                                checked={isChecked(
-                                                    jy.lessonsCompleted,
-                                                    i + 1
+                                    (_col, i) => {
+                                        const checked = isChecked(
+                                            jy.lessonsCompleted,
+                                            i + 1
+                                        );
+
+                                        return (
+                                            <td key={i}>
+                                                <input
+                                                    type="checkbox"
+                                                    defaultChecked={
+                                                        checked ? true : false
+                                                    }
+                                                    onChange={(e) =>
+                                                        onChange(
+                                                            e.target.checked,
+                                                            jy,
+                                                            i + 1
+                                                        )
+                                                    }
+                                                />
+                                                {checked && (
+                                                    <strong
+                                                        style={{
+                                                            fontSize: "10px",
+                                                        }}
+                                                    >
+                                                        {dayjs(
+                                                            checked.date
+                                                        ).format("MM/DD/YYYY")}
+                                                    </strong>
                                                 )}
-                                                readOnly
-                                            />
-                                        </td>
-                                    )
+                                            </td>
+                                        );
+                                    }
                                 )}
                             </tr>
                         ))}
