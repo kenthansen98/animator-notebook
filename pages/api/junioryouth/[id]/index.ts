@@ -5,18 +5,26 @@ const handle = async (req: NextApiRequest, res: NextApiResponse) => {
     const jyId = req.query.id;
 
     if (req.method === "PUT") {
-        const newLesson = req.body.changedJy.lessonsCompleted[0];
+        const lessons = req.body.jy.lessonsCompleted;
         const jy = await prisma.juniorYouth.update({
             where: { id: Number(jyId) },
             data: {
                 lessonsCompleted: {
-                    create: {
-                        text: newLesson.text,
-                        lesson: newLesson.lesson,
-                        date: new Date(newLesson.date),
-                    },
-                },
-            },
+                    deleteMany: {},
+                    createMany: {
+                        data: lessons.length > 0 ? (lessons as any[]).map((lesson) => ({
+                            text: lesson.text,
+                            lesson: lesson.lesson,
+                            date: new Date(lesson.date)
+                        })) : []
+                    }
+                }
+            }
+        });
+        res.json(jy);
+    } else if (req.method === "DELETE") {
+        const jy = await prisma.juniorYouth.delete({
+            where: { id: Number(jyId) }
         });
         res.json(jy);
     } else {

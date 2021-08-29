@@ -120,11 +120,6 @@ const Lessons: React.FC<Props> = ({ notebook }) => {
         currentJy: NewJY,
         currentLesson: number
     ) => {
-        // const lesson = lessonsCompleted.find(
-        //     (lesson) =>
-        //         lesson.text === currentText.name &&
-        //         lesson.lesson === currentLesson
-        // );
         let changedJy: NewJY | undefined;
         if (checked) {
             const newLesson: NewLesson = {
@@ -161,11 +156,14 @@ const Lessons: React.FC<Props> = ({ notebook }) => {
             });
             setJyLessons(newJyLessons);
         }
-        if (changedJy) {
-            try {
-                const body = { changedJy };
+    };
+
+    const onUpdate = () => {
+        try {
+            jyLessons.forEach(async (jy) => {
+                const body = { jy };
                 const response = await fetch(
-                    `http://localhost:3000/api/junioryouth/${changedJy.id}`,
+                    `http://localhost:3000/api/junioryouth/${jy.id}`,
                     {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
@@ -173,9 +171,9 @@ const Lessons: React.FC<Props> = ({ notebook }) => {
                     }
                 );
                 console.log(response);
-            } catch (e) {
-                console.error(e);
-            }
+            });
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -254,6 +252,9 @@ const Lessons: React.FC<Props> = ({ notebook }) => {
                         ))}
                     </tbody>
                 </table>
+                <div>
+                    <button onClick={onUpdate}>update</button>
+                </div>
             </div>
         </Layout>
     );

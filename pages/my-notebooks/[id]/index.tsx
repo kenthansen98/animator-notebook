@@ -9,7 +9,6 @@ import styles from "../../../styles/SingleNotebook.module.css";
 import SectionForm from "../../../components/SectionForm";
 import BasicInfoForm from "../../../components/BasicInfoForm";
 import Router from "next/router";
-import router from "next/router";
 import Link from "next/link";
 
 interface Props {
@@ -64,6 +63,18 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
         }
     };
 
+    const deleteJy = async (jyId: number) => {
+        if (window.confirm("Are you sure you want to delete this participant?")) {
+            await fetch(
+                `http://localhost:3000/api/junioryouth/${jyId}`,
+                {
+                    method: "DELETE",
+                }
+            );
+            Router.replace(Router.asPath);
+        }
+    }
+
     return (
         <Layout>
             <div className={styles.content}>
@@ -107,7 +118,7 @@ const SingleNotebook: React.FC<Props> = ({ notebook }) => {
                             }
                             className={styles.toggle}
                         >
-                            {jy.name}, {jy.age}
+                            {jy.name}, {jy.age} {addBasicInfo && <button onClick={() => deleteJy(jy.id)}>x</button>}
                         </div>
                         {viewNotes.includes(jy.id) &&
                             jy.notes.map(
